@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>급식권 양도 시스템</title>
+  <style>
+    /* 여기에 CSS 스타일을 추가하세요 */
+    body { font-family: Arial, sans-serif; }
+    h2, h3 { color: #333; }
+    input { margin: 5px 0; padding: 8px; width: 200px; }
+    button { padding: 8px 12px; margin-top: 10px; }
+    #output { margin-top: 20px; color: green; }
+  </style>
+</head>
+<body>
+  <h2>급식권 양도 및 선택 시스템</h2>
+
+  <h3>급식권 등록</h3>
+  <input type="text" id="register_student_id_input" placeholder="학번을 입력하세요">
+  <button onclick="registerTicket()">급식권 등록</button>
+
+  <h3>급식권 선택</h3>
+  <input type="text" id="claim_student_id_input" placeholder="학번을 입력하세요">
+  <button onclick="claimTicket()">급식권 선택</button>
+
+  <div id="output"></div>
+
+  <h3>등록된 급식권 목록</h3>
+  <div id="registered_tickets"></div>
+
+  <h3>급식권 양도 기록</h3>
+  <div id="transfer_records"></div>
+
+  <script>
+    // 클라이언트 측 저장소에서 데이터를 가져옵니다.
+    let availableTickets = JSON.parse(localStorage.getItem('availableTickets')) || [];
+    let transferRecords = JSON.parse(localStorage.getItem('transferRecords')) || [];
+
+    function saveToLocalStorage() {
+      localStorage.setItem('availableTickets', JSON.stringify(availableTickets));
+      localStorage.setItem('transferRecords', JSON.stringify(transferRecords));
+    }
+
+    function registerTicket() {
+      const studentId = document.getElementById('register_student_id_input').value;
+      if (studentId) {
+        availableTickets.push(studentId);
+        document.getElementById('output').innerText = `학생 ${studentId}의 급식권이 등록되었습니다.`;
+        updateRegisteredTicketsDisplay();
+        saveToLocalStorage(); // 변경된 데이터를 저장소에 저장
+      } else {
+        document.getElementById('output').innerText = '학번을 입력하세요.';
+      }
+      document.getElementById('register_student_id_input').value = '';
+    }
+
+    function claimTicket() {
+      const studentId = document.getElementById('claim_student_id_input').value;
+      if (studentId) {
+        if (availableTickets.length > 0) {
+          const ticketOwner = availableTickets.shift();
+          transferRecords.push([ticketOwner, studentId]);
+          document.getElementById('output').innerText = `학생 ${studentId}이(가) 학생 ${ticketOwner}의 급식권을 선택했습니다.`;
+          updateRegisteredTicketsDisplay();
+          updateTransferRecordsDisplay();
+          saveToLocalStorage(); // 변경된 데이터를 저장소에 저장
+        } else {
+          document.getElementById('output').innerText = '현재 등록된 급식권이 없습니다.';
+        }
+      } else {
+        document.getElementById('output').innerText = '학번을 입력하세요.';
+      }
+      document.getElementById('claim_student_id_input').value = '';
+    }
+
+    function updateRegisteredTicketsDisplay() {
+      const registeredTicketsDiv = document.getElementById('registered_tickets');
+      registeredTicketsDiv.innerHTML = '';
+      if (availableTickets.length > 0) {
+        registeredTicketsDiv.innerHTML = '<h4>현재 등록된 급식권 학번 목록:</h4><ul>';
+        availableTickets.forEach(ticket => {
+          registeredTicketsDiv.innerHTML += `<li>${ticket}</li>`;
+        });
+        registeredTicketsDiv.innerHTML += '</ul>';
+      } else {
+        registeredTicketsDiv.innerHTML = '<h4>현재 등록된 급식권이 없습니다.</h4>';
+      }
+    }
+
+    function updateTransferRecordsDisplay() {
+      const transferRecordsDiv = document.getElementById('transfer_records');
+      transferRecordsDiv.innerHTML = '';
+      if (transferRecords.length > 0) {
+        transferRecordsDiv.innerHTML = '<h4>급식권 양도 기록:</h4><ul>';
+        transferRecords.forEach(record => {
+          transferRecordsDiv.innerHTML += `<li>학생 ${record[0]} -> 학생 ${record[1]}</li>`;
+        });
+        transferRecordsDiv.innerHTML += '</ul>';
+      } else {
+        transferRecordsDiv.innerHTML = '<h4>현재 양도된 급식권이 없습니다.</h4>';
+      }
+    }
+
+    // 페이지 로드 시 저장된 데이터로 화면 초기화
+    updateRegisteredTicketsDisplay();
+    updateTransferRecordsDisplay();
+
+    // 매일 자정에 시스템을 리셋하는 함수
+    function resetSystemDaily() {
+      const now = new Date();
+      const nextReset = new Date(now);
+      nextReset.setDate(nextReset.getDate() + 1);
+      nextReset.setHours(0, 0, 0, 0);
+      const timeUntilReset = nextReset - now;
+
+      setTimeout(() => {
+        // 시스템 리셋
+        availableTickets = [];
+        transferRecords = [];
+        saveToLocalStorage(); // 리셋 후 저장소에 변경된 데이터 저장
+        document.getElementById('output').innerText = '시스템이 리셋되었습니다.';
+        updateRegisteredTicketsDisplay();
+        updateTransferRecordsDisplay();
+
+        // 다음 일정 시간 후에 다시 리셋
+        resetSystemDaily();
+      }, timeUntilReset);
+    }
+
+    // 초기에 매일 자정에 시스템 리셋 시작
+    resetSystemDaily();
+  </script>
+</body>
+</html>
